@@ -1,6 +1,37 @@
 // Matter.js 模块别名
 const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint, Events, Body, Query } = Matter;
 
+// 音效系统
+const sounds = {
+    '🐱': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/cat--_gb_1.mp3'] }),  // cat
+    '🐶': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/dog--_gb_1.mp3'] }),  // dog
+    '🐰': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/rabbit--_gb_1.mp3'] }),  // rabbit
+    '🐼': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/panda--_gb_1.mp3'] }),  // panda
+    '🐨': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/koala--_gb_1.mp3'] }),  // koala
+    '🦊': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/fox--_gb_1.mp3'] }),  // fox
+    '🐯': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/tiger--_gb_1.mp3'] }),  // tiger
+    '🦁': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/lion--_gb_1.mp3'] }),  // lion
+    '🐘': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/elephant--_gb_1.mp3'] }),  // elephant
+    '🦒': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/giraffe--_gb_1.mp3'] }),  // giraffe
+    '🦘': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/kangaroo--_gb_1.mp3'] }),  // kangaroo
+    '🦥': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/sloth--_gb_1.mp3'] }),  // sloth
+    '🦦': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/otter--_gb_1.mp3'] }),  // otter
+    '🦝': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/raccoon--_gb_1.mp3'] }),  // raccoon
+    '🦡': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/badger--_gb_1.mp3'] }),  // badger
+    '🦫': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/beaver--_gb_1.mp3'] }),  // beaver
+    '🦙': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/llama--_gb_1.mp3'] }),  // llama
+    '🦣': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/mammoth--_gb_1.mp3'] }),  // mammoth
+    '🦛': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/hippopotamus--_gb_1.mp3'] }),  // hippopotamus
+    '🦬': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/bison--_gb_1.mp3'] }),  // bison
+    'default': new Howl({ src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/pop--_gb_1.mp3'] })  // 默认消除音效
+};
+
+// 播放音效函数
+function playSound(emoji) {
+    const sound = sounds[emoji] || sounds['default'];
+    sound.play();
+}
+
 // 创建引擎
 const engine = Engine.create();
 const world = engine.world;
@@ -9,6 +40,10 @@ const world = engine.world;
 let score = 0;
 let level = 1;
 let targetScore = 1000;
+
+// 游戏尺寸
+let gameWidth = window.innerWidth;
+let gameHeight = window.innerHeight;
 
 // 关卡配置
 const levelConfig = {
@@ -31,28 +66,55 @@ const render = Render.create({
     element: document.body,
     engine: engine,
     options: {
-        width: 800,
-        height: 600,
+        width: gameWidth,
+        height: gameHeight,
         wireframes: false,
         background: '#1a1a1a'
     }
 });
 
 // 创建边界墙
-const wallOptions = {
-    isStatic: true,
-    render: {
-        fillStyle: '#333'
-    }
-};
+let walls = [];
 
-const ground = Bodies.rectangle(400, 590, 810, 20, wallOptions);
-const leftWall = Bodies.rectangle(0, 300, 20, 600, wallOptions);
-const rightWall = Bodies.rectangle(800, 300, 20, 600, wallOptions);
-const ceiling = Bodies.rectangle(400, 10, 810, 20, wallOptions);
+function createWalls() {
+    // 移除旧的墙
+    walls.forEach(wall => Composite.remove(world, wall));
+    walls = [];
 
-// 添加所有边界墙到世界
-Composite.add(world, [ground, leftWall, rightWall, ceiling]);
+    const wallOptions = {
+        isStatic: true,
+        render: {
+            fillStyle: '#333'
+        }
+    };
+
+    // 创建新的墙
+    const ground = Bodies.rectangle(gameWidth / 2, gameHeight - 10, gameWidth + 20, 20, wallOptions);
+    const leftWall = Bodies.rectangle(10, gameHeight / 2, 20, gameHeight, wallOptions);
+    const rightWall = Bodies.rectangle(gameWidth - 10, gameHeight / 2, 20, gameHeight, wallOptions);
+    const ceiling = Bodies.rectangle(gameWidth / 2, 10, gameWidth + 20, 20, wallOptions);
+
+    walls = [ground, leftWall, rightWall, ceiling];
+    Composite.add(world, walls);
+}
+
+// 初始化墙
+createWalls();
+
+// 监听窗口大小变化
+window.addEventListener('resize', () => {
+    gameWidth = window.innerWidth;
+    gameHeight = window.innerHeight;
+
+    // 更新渲染器尺寸
+    render.canvas.width = gameWidth;
+    render.canvas.height = gameHeight;
+    render.options.width = gameWidth;
+    render.options.height = gameHeight;
+
+    // 重新创建墙
+    createWalls();
+});
 
 // 创建一些有趣的形状
 function createRandomShape(x, y) {
@@ -121,15 +183,45 @@ function checkMatches() {
         matches.forEach(body => {
             Composite.remove(world, body);
             createExplosion(body.position.x, body.position.y, body.gameEmoji);
+            playSound(body.gameEmoji);  // 播放对应的音效
         });
 
         // 检查是否达到目标分数
         if (score >= targetScore) {
+            const oldEmojis = levelConfig.getEmojis(level);
             level++;
+            const newEmojis = levelConfig.getEmojis(level);
             targetScore = levelConfig.getTargetScore(level);
             // 更新形状生成间隔
             updateShapeInterval();
-            alert(`恭喜！进入第${level}关！\n目标分数：${targetScore}\n新增颜色数：${levelConfig.getEmojis(level).length}\n特殊道具概率：${Math.floor(levelConfig.getSpecialProbability(level) * 100)}%`);
+            
+            // 找出新增的动物
+            const newAnimals = newEmojis.filter(emoji => !oldEmojis.includes(emoji));
+            
+            // 创建欢迎语音
+            const welcomeSound = new Howl({
+                src: ['https://ssl.gstatic.com/dictionary/static/sounds/oxford/congratulations--_gb_1.mp3'],
+                onend: function() {
+                    // 依次播放新增动物的音效
+                    let index = 0;
+                    const playNext = () => {
+                        if (index < newAnimals.length) {
+                            const sound = sounds[newAnimals[index]];
+                            sound.once('end', () => {
+                                index++;
+                                playNext();
+                            });
+                            sound.play();
+                        }
+                    };
+                    playNext();
+                }
+            });
+            
+            // 播放欢迎语音
+            welcomeSound.play();
+            
+            alert(`恭喜！进入第${level}关！\n目标分数：${targetScore}\n新增动物：${newAnimals.join(' ')}\n特殊道具概率：${Math.floor(levelConfig.getSpecialProbability(level) * 100)}%`);
         }
 
         return true;
@@ -196,7 +288,7 @@ function updateShapeInterval() {
     shapeInterval = setInterval(() => {
         if (Composite.allBodies(world).length < 50) {
             const shape = createRandomShape(
-                Math.random() * 700 + 50,
+                Math.random() * (gameWidth - 100) + 50,
                 50
             );
             Composite.add(world, shape);
