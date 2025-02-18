@@ -24,9 +24,19 @@
 </head>
 <body>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        Promise.all([
+            new Promise(resolve => {
+                if (typeof Matter !== 'undefined') resolve();
+                else document.querySelector('script[src*="matter-js"]').onload = resolve;
+            }),
+            new Promise(resolve => {
+                if (typeof Howl !== 'undefined') resolve();
+                else document.querySelector('script[src*="howler"]').onload = resolve;
+            })
+        ]).then(() => {
             const script = document.createElement('script');
-            script.src = 'sketch.js';
+            script.type = 'module';
+            script.src = 'game.js';
             document.body.appendChild(script);
         });
     </script>
